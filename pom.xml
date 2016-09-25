@@ -9,7 +9,8 @@
 
     <groupId>com.bikeemotion</groupId>
     <artifactId>quartz-hazelcast-jobstore</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.3-SNAPSHOT</version>
+    <packaging>bundle</packaging>
   
     <name>Quartz Hazelcast JobStore</name>
 
@@ -31,10 +32,12 @@
         <maven.compiler.target>1.8</maven.compiler.target>
     
         <hazelcast.version>3.2.1</hazelcast.version>
-        <quartz.version>2.2.1</quartz.version>
+        <quartz.version>2.2.3</quartz.version>
         <guava.version>17.0</guava.version>
         <joda.time.version>2.4</joda.time.version>
     
+        <osgi.import.pkg>*</osgi.import.pkg>
+        <osgi.export.pkg>com.bikeemotion.quartz.jobstore.*</osgi.export.pkg>
     </properties>
 
     <dependencies>
@@ -114,6 +117,11 @@
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
                 </configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <version>2.15</version>
             </plugin>
         </plugins>
     </build>

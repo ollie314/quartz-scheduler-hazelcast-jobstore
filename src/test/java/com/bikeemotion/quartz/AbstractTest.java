@@ -1,7 +1,12 @@
 package com.bikeemotion.quartz;
 
+import com.bikeemotion.quartz.jobstore.hazelcast.HazelcastJobStore;
+import com.hazelcast.config.Config;
+import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+
 import java.util.Date;
+
 import org.joda.time.DateTime;
 import org.quartz.Job;
 import org.quartz.JobBuilder;
@@ -9,20 +14,39 @@ import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.JobPersistenceException;
 import org.quartz.ObjectAlreadyExistsException;
+
 import static org.quartz.Scheduler.DEFAULT_GROUP;
+
+import org.quartz.ScheduleBuilder;
 import org.quartz.SimpleScheduleBuilder;
 import org.quartz.TriggerBuilder;
 import org.quartz.TriggerKey;
 import org.quartz.impl.calendar.BaseCalendar;
-import org.quartz.spi.JobStore;
 import org.quartz.spi.OperableTrigger;
+
 
 public abstract class AbstractTest {
 
   protected HazelcastInstance hazelcastInstance;
-  protected JobStore jobStore;
+  protected HazelcastJobStore jobStore;
   protected int buildTriggerIndex = 0;
   protected int buildJobIndex = 0;
+
+  protected HazelcastInstance createHazelcastInstance(String clusterName) {
+
+    Config config = new Config();
+    config.getGroupConfig().setName(clusterName);
+    config.getGroupConfig().setPassword("some-password");
+    config.setProperty("hazelcast.logging.type", "slf4j");
+    return Hazelcast.newHazelcastInstance(config);
+  }
+
+  protected HazelcastJobStore createJobStore(String name) {
+
+    HazelcastJobStore hzJobStore = new HazelcastJobStore();
+    hzJobStore.setInstanceName(name);
+    return hzJobStore;
+  }
 
   protected JobDetail buildJob() {
 
@@ -86,12 +110,21 @@ public abstract class AbstractTest {
   }
 
   protected OperableTrigger buildTrigger(String triggerName,
+                                         String triggerGroup,
+                                         JobDetail job,
+                                         Long startAt,
+                                         Long endAt) {
+   return buildTrigger(triggerName, triggerGroup, job, startAt, endAt, null);
+  }
+
+  protected OperableTrigger buildTrigger(String triggerName,
       String triggerGroup,
       JobDetail job,
       Long startAt,
-      Long endAt) {
+      Long endAt,
+      ScheduleBuilder scheduleBuilder) {
 
-    SimpleScheduleBuilder schedule = SimpleScheduleBuilder.simpleSchedule();
+    ScheduleBuilder schedule = scheduleBuilder!=null?scheduleBuilder : SimpleScheduleBuilder.simpleSchedule();
     return (OperableTrigger) TriggerBuilder
         .newTrigger()
         .withIdentity(triggerName, triggerGroup)
@@ -104,7 +137,7 @@ public abstract class AbstractTest {
 
   protected OperableTrigger buildTrigger(String triggerName, String triggerGroup, JobDetail job, Long startAt) {
 
-    return buildTrigger(triggerName, triggerGroup, job, startAt, null);
+    return buildTrigger(triggerName, triggerGroup, job, startAt, null, null);
   }
 
   protected OperableTrigger buildTrigger()
@@ -139,9 +172,21 @@ public abstract class AbstractTest {
       String triggerGroup,
       JobDetail job,
       Long startAt,
-      Long endAt) {
+      Long endAt,
+      ScheduleBuilder scheduleBuilder) {
 
-    OperableTrigger trigger = buildTrigger(triggerName, triggerGroup, job, startAt, endAt);
+    OperableTrigger trigger = buildTrigger(triggerName, triggerGroup, job, startAt, endAt, scheduleBuilder);
+    trigger.computeFirstFireTime(null);
+    return trigger;
+  }
+
+  protected OperableTrigger buildAndComputeTrigger(String triggerName,
+                                                   String triggerGroup,
+                                                   JobDetail job,
+                                                   Long startAt,
+                                                   Long endAt) {
+
+    OperableTrigger trigger = buildTrigger(triggerName, triggerGroup, job, startAt, endAt,null);
     trigger.computeFirstFireTime(null);
     return trigger;
   }
